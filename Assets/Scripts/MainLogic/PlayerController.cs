@@ -132,7 +132,7 @@ public class PlayerController : MonoBehaviour
         // Trigger roll animation
         if (animator != null)
         {
-            animator.SetBool("IsRoll", true); // Trigger roll animation
+            animator.SetBool("IsRolling", true); // Trigger roll animation
             animator.SetBool("Run", false); // Stop running animation during roll
         }
     }
@@ -147,7 +147,7 @@ public class PlayerController : MonoBehaviour
             // Exit roll animation
             if (animator != null)
             {
-                animator.SetBool("Roll", false);
+                animator.SetBool("IsRolling", false);
                 animator.SetBool("Run", isGrounded && rb2D.velocity.x > 0); // Resume running if grounded and moving
             }
         }
