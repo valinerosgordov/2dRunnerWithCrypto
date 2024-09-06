@@ -10,9 +10,11 @@ TagManager:
   - Obstacle
   - Enemy
   - UI
-  - Building
   - BackGround
-  - MidGround
+  - PowerUP
+  - Projectile
+  - Building
+  - BackGroundSky
   layers:
   - Default
   - TransparentFX
@@ -22,7 +24,7 @@ TagManager:
   - UI
   - BackgroundSky
   - BackgroundMid
-  - BackgroundClose
+  - 
   - 
   - Coins
   - Obstacles
@@ -50,23 +52,17 @@ TagManager:
   - name: TransparentFX
     uniqueID: 4239530387
     locked: 0
-  - name: UI
-    uniqueID: 1972175791
-    locked: 0
   - name: Default
     uniqueID: 0
-    locked: 0
-  - name: Ground
-    uniqueID: 3587278765
     locked: 0
   - name: BackgroundSky
     uniqueID: 3585371127
     locked: 0
-  - name: BackgroundMid
+  - name: BackgroundObjetcs
     uniqueID: 4001543413
     locked: 0
-  - name: BackgroundClose
-    uniqueID: 2785140511
+  - name: Ground
+    uniqueID: 3587278765
     locked: 0
   - name: Player
     uniqueID: 588125
@@ -79,4 +75,7 @@ TagManager:
     locked: 0
   - name: Buffs
     uniqueID: 2361455183
+    locked: 0
+  - name: UI
+    uniqueID: 1972175791
     locked: 0

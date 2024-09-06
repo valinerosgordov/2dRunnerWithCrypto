@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float rollSpeed = 7f;       // Speed during rolling
     [SerializeField] private float rollDuration = 0.5f;  // Duration of the roll
     [SerializeField] private Transform groundCheck;      // Transform for ground check position
-    [SerializeField] private float groundCheckRadius = 0.2f; // Radius for ground check circle
+    [SerializeField] private float groundCheckRadius = 0.3f; // Radius for ground check circle
     [SerializeField] private LayerMask groundLayer;      // Layer for ground detection
 
     private Rigidbody2D rb2D;
@@ -55,6 +55,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // Check if the player is grounded
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         // Handle player jump
@@ -88,22 +89,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // Update animator parameters
-        if (animator != null)
-        {
-            animator.SetBool("IsGrounded", isGrounded);
-            animator.SetBool("IsRolling", isRolling);
-            animator.SetFloat("HorizontalSpeed", Mathf.Abs(rb2D.velocity.x));
-
-            // Only set IsRunning to true if the player is grounded and not rolling or jumping
-            if (isGrounded && !isRolling)
-            {
-                animator.SetBool("IsRunning", true);
-            }
-            else
-            {
-                animator.SetBool("IsRunning", false);
-            }
-        }
+        UpdateAnimator();
     }
 
     private void FixedUpdate()
@@ -114,7 +100,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Automatic horizontal movement
+            // Ensure horizontal movement is smooth and consistent
             rb2D.velocity = new Vector2(horizontalSpeed, rb2D.velocity.y);
         }
     }
@@ -124,11 +110,30 @@ public class PlayerController : MonoBehaviour
         rb2D.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         isGrounded = false;
 
+        // Play jump sound
+        AudioManager.Instance?.PlayJumpSound();
+
         // Trigger jump animation
         if (animator != null)
         {
-            animator.SetTrigger("Jump");
-            animator.SetBool("IsRunning", false); // Stop running animation during jump
+            animator.SetTrigger("IsJumping");
+            animator.SetBool("Run", false); // Stop running animation during jump
+        }
+    }
+
+    private void StartRoll(Vector2 direction)
+    {
+        isRolling = true;
+        rollTimer = rollDuration;
+        rollDirection = direction.normalized;
+
+       
+
+        // Trigger roll animation
+        if (animator != null)
+        {
+            animator.SetBool("IsRoll", true); // Trigger roll animation
+            animator.SetBool("Run", false); // Stop running animation during roll
         }
     }
 
@@ -142,8 +147,31 @@ public class PlayerController : MonoBehaviour
             // Exit roll animation
             if (animator != null)
             {
-                animator.SetBool("IsRolling", false);
-                animator.SetBool("IsRunning", true); // Resume running animation after roll
+                animator.SetBool("Roll", false);
+                animator.SetBool("Run", isGrounded && rb2D.velocity.x > 0); // Resume running if grounded and moving
+            }
+        }
+    }
+
+    private void Shoot()
+    {
+        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
+        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
+        rb.velocity = bulletSpawnPoint.up * bulletSpeed;
+
+        // Play shoot sound
+        AudioManager.Instance?.PlayShootSound();
+    }
+
+    private void AttractCoins()
+    {
+        Collider2D[] coins = Physics2D.OverlapCircleAll(transform.position, magnetRadius);
+        foreach (Collider2D coin in coins)
+        {
+            if (coin.CompareTag("Coin"))
+            {
+                // Attract coin to player
+                coin.transform.position = Vector2.MoveTowards(coin.transform.position, transform.position, horizontalSpeed * Time.deltaTime);
             }
         }
     }
@@ -157,7 +185,7 @@ public class PlayerController : MonoBehaviour
             // Trigger landing animation
             if (animator != null)
             {
-                animator.ResetTrigger("Jump"); // Ensure the jump trigger is reset
+                animator.ResetTrigger("IsJumping"); // Ensure the jump trigger is reset
                 animator.SetBool("IsGrounded", true);
             }
         }
@@ -185,43 +213,26 @@ public class PlayerController : MonoBehaviour
         {
             UIManager.Instance?.AddCoin();
             Destroy(other.gameObject); // Destroy the coin object
+
+            // Play coin collect sound
+            AudioManager.Instance?.PlayCoinCollectSound();
         }
     }
 
-    private void StartRoll(Vector2 direction)
+    private void UpdateAnimator()
     {
-        isRolling = true;
-        rollTimer = rollDuration;
-        rollDirection = direction.normalized;
-
-        // Trigger roll animation
         if (animator != null)
         {
-            animator.SetBool("IsRolling", true);
-            animator.SetBool("IsRunning", false); // Stop running animation during roll
+            animator.SetBool("IsGrounded", isGrounded);
+            animator.SetBool("IsRolling", isRolling);
+            animator.SetFloat("HorizontalSpeed", Mathf.Abs(rb2D.velocity.x));
+
+            // Only set IsRunning to true if the player is grounded, not rolling, and moving
+            animator.SetBool("Run", isGrounded && !isRolling && Mathf.Abs(rb2D.velocity.x) > 0);
         }
     }
 
-    private void Shoot()
-    {
-        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
-        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        rb.velocity = bulletSpawnPoint.up * bulletSpeed;
-    }
-
-    private void AttractCoins()
-    {
-        Collider2D[] coins = Physics2D.OverlapCircleAll(transform.position, magnetRadius);
-        foreach (Collider2D coin in coins)
-        {
-            if (coin.CompareTag("Coin"))
-            {
-                // Attract coin to player
-                coin.transform.position = Vector2.MoveTowards(coin.transform.position, transform.position, horizontalSpeed * Time.deltaTime);
-            }
-        }
-    }
-
+    // Buffs and Power-ups
     public void ActivateSpeedBoost(float multiplier, float duration)
     {
         StartCoroutine(SpeedBoost(multiplier, duration));
@@ -280,5 +291,12 @@ public class PlayerController : MonoBehaviour
         isMagnetActive = true;
         yield return new WaitForSeconds(duration);
         isMagnetActive = false;
+    }
+    private void EndRoll()
+    {
+        isRolling = false;
+
+        // Stop roll animation
+        animator.SetBool("IsRolling", false);
     }
 }

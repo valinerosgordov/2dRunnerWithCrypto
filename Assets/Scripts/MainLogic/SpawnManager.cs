@@ -5,7 +5,7 @@ public class SpawnManager : MonoBehaviour
 {
     [Header("Obstacles")]
     [SerializeField] private GameObject[] obstaclePrefabs;
-    [SerializeField] private float obstacleSpawnInterval = 2f;
+    [SerializeField] private float obstacleSpawnInterval = 4f;
 
     [Header("Coins")]
     [SerializeField] private GameObject coinPrefab;
